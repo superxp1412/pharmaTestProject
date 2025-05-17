@@ -69,6 +69,91 @@ The application will start on `http://localhost:8080`
 - `POST /api/v1/pharmacies/{pharmacyId}/prescriptions` - Create a new prescription
 - `POST /api/v1/pharmacies/prescriptions/{prescriptionId}/fulfill` - Fulfill a prescription
 
+### Audit Logs API
+- `GET /api/v1/audit-logs` - Get paginated audit logs with optional filters
+    - Query Parameters:
+        - `patientId` (optional): Filter logs by patient ID
+        - `pharmacyId` (optional): Filter logs by pharmacy ID
+        - `status` (optional): Filter logs by status (SUCCESS or FAILURE)
+        - `page` (optional, default: 0): Page number for pagination
+        - `size` (optional, default: 10): Number of items per page
+    - Example Response:
+      ```json
+      {
+          "content": [
+              {
+                  "id": 2,
+                  "prescriptionId": 1,
+                  "patientId": 1,
+                  "pharmacyId": 1,
+                  "drugsRequested": [
+                      {
+                          "drugId": 1,
+                          "quantity": 11,
+                          "dosage": "500mg"
+                      }
+                  ],
+                  "drugsDispensed": [
+                      {
+                          "drugId": 1,
+                          "name": "Aspirin",
+                          "manufacturer": "Bayer",
+                          "batchNumber": "ASP123",
+                          "quantity": 11
+                      }
+                  ],
+                  "failureReason": null,
+                  "status": "SUCCESS",
+                  "createdAt": "2025-05-17T22:17:33.04469"
+              },
+              {
+                  "id": 5,
+                  "prescriptionId": 1,
+                  "patientId": 1,
+                  "pharmacyId": 1,
+                  "drugsRequested": [],
+                  "drugsDispensed": [
+                      {
+                          "drugId": 1,
+                          "name": "Aspirin",
+                          "manufacturer": "Bayer",
+                          "batchNumber": "ASP123",
+                          "quantity": 11
+                      }
+                  ],
+                  "failureReason": null,
+                  "status": "SUCCESS",
+                  "createdAt": "2025-05-17T22:19:54.027963"
+              }
+          ],
+          "pageable": {
+              "pageNumber": 0,
+              "pageSize": 10,
+              "sort": {
+                  "empty": true,
+                  "sorted": false,
+                  "unsorted": true
+              },
+              "offset": 0,
+              "paged": true,
+              "unpaged": false
+          },
+          "last": true,
+          "totalPages": 1,
+          "totalElements": 2,
+          "first": true,
+          "size": 10,
+          "number": 0,
+          "sort": {
+              "empty": true,
+              "sorted": false,
+              "unsorted": true
+          },
+          "numberOfElements": 2,
+          "empty": false
+      }
+      ```
+
 ## Testing Instructions
 
 1. Run unit tests:
@@ -88,16 +173,12 @@ mvn checkstyle:check
 ## Assumptions
 
 1. **Drug Management**:
-    - Each time a drug is added to the inventory, a new batch is created even if the drug name
-      matches an existing one (as each addition corresponds to a new batch with a unique batch
-      number and expiry date).
     - Drugs have unique batch numbers
     - Expired drugs cannot be added to inventory
     - Stock quantities cannot be negative
 
 2. **Pharmacy Operations**:
-    - Pharmacies contract for specific drug batches (meaning even with the same drug name in
-      inventory, pharmacies must contract separately for each batch).
+    - Pharmacies are contracted for specific drugs
     - Each pharmacy has allocation limits for contracted drugs
     - Prescriptions must be fulfilled within allocation limits
 
