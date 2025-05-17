@@ -173,12 +173,16 @@ mvn checkstyle:check
 ## Assumptions
 
 1. **Drug Management**:
+    - Each time a drug is added to the inventory, a new batch is created even if the drug name
+      matches an existing one (as each addition corresponds to a new batch with a unique batch
+      number and expiry date).
     - Drugs have unique batch numbers
     - Expired drugs cannot be added to inventory
     - Stock quantities cannot be negative
 
 2. **Pharmacy Operations**:
-    - Pharmacies are contracted for specific drugs
+    - Pharmacies contract for specific drug batches (meaning even with the same drug name in
+      inventory, pharmacies must contract separately for each batch).
     - Each pharmacy has allocation limits for contracted drugs
     - Prescriptions must be fulfilled within allocation limits
 
