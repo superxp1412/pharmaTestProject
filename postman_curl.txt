@@ -1,0 +1,18 @@
+curl --location 'http://localhost:8080/api/v1/pharmacies/1/prescriptions' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "patientId": 1,
+    "drugs": [
+        {
+            "drugId": 1,
+            "quantity": 30
+        },
+        {
+            "drugId": 2,
+            "quantity": 20
+        }
+    ]
+}'
+
+curl --location 'http://localhost:8080/api/v1/pharmacies/prescriptions/1/fulfill' \
+--header 'Content-Type: application/json' 
