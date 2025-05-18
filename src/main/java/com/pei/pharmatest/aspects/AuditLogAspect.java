@@ -1,11 +1,11 @@
 package com.pei.pharmatest.aspects;
 
+import java.util.Collections;
 import com.pei.pharmatest.dto.PrescriptionRequest;
 import com.pei.pharmatest.dto.PrescriptionResponse;
 import com.pei.pharmatest.entities.AuditLog;
 import com.pei.pharmatest.exceptions.ResourceNotFoundException;
 import com.pei.pharmatest.repositories.AuditLogRepository;
-import java.util.Collections;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -42,6 +42,18 @@ public class AuditLogAspect {
     this.transactionManager = transactionManager;
   }
 
+  private void handleAuditLogFailure(AuditLog log, Exception e, String errorType) {
+    log.setStatus("FAILURE");
+    log.setFailureReason(errorType + ": " + e.getMessage());
+    if (log.getPatientId() == null)
+      log.setPatientId(-1L);
+    if (log.getPharmacyId() == null)
+      log.setPharmacyId(-1L);
+    if (log.getPrescriptionId() == null)
+      log.setPrescriptionId(-1L);
+    saveAuditLog(log);
+  }
+
   /**
    * Intercepts prescription creation operations and logs the audit information.
    *
@@ -67,25 +79,13 @@ public class AuditLogAspect {
       saveAuditLog(log);
       return response;
     } catch (ResourceNotFoundException e) {
-      log.setPrescriptionId(-1L);
-      log.setStatus("FAILURE");
-      log.setFailureReason("Resource not found: "
-          + e.getMessage());
-      saveAuditLog(log);
+      handleAuditLogFailure(log, e, "Resource not found");
       throw e;
     } catch (IllegalArgumentException e) {
-      log.setPrescriptionId(-1L);
-      log.setStatus("FAILURE");
-      log.setFailureReason("Invalid input: "
-          + e.getMessage());
-      saveAuditLog(log);
+      handleAuditLogFailure(log, e, "Invalid input");
       throw e;
     } catch (Exception e) {
-      log.setPrescriptionId(-1L);
-      log.setStatus("FAILURE");
-      log.setFailureReason("Unexpected error: "
-          + e.getMessage());
-      saveAuditLog(log);
+      handleAuditLogFailure(log, e, "Unexpected error");
       throw e;
     }
   }
@@ -114,28 +114,13 @@ public class AuditLogAspect {
       saveAuditLog(log);
       return response;
     } catch (ResourceNotFoundException e) {
-      log.setStatus("FAILURE");
-      log.setFailureReason("Resource not found: "
-          + e.getMessage());
-      log.setPatientId(-1L);
-      log.setPharmacyId(-1L);
-      saveAuditLog(log);
+      handleAuditLogFailure(log, e, "Resource not found");
       throw e;
     } catch (IllegalStateException e) {
-      log.setStatus("FAILURE");
-      log.setFailureReason("Invalid state: "
-          + e.getMessage());
-      log.setPatientId(-1L);
-      log.setPharmacyId(-1L);
-      saveAuditLog(log);
+      handleAuditLogFailure(log, e, "Invalid state");
       throw e;
     } catch (Exception e) {
-      log.setStatus("FAILURE");
-      log.setFailureReason("Unexpected error: "
-          + e.getMessage());
-      log.setPatientId(-1L);
-      log.setPharmacyId(-1L);
-      saveAuditLog(log);
+      handleAuditLogFailure(log, e, "Unexpected error");
       throw e;
     }
   }

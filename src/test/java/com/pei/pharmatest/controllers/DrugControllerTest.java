@@ -7,15 +7,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pei.pharmatest.dto.DrugRequest;
 import com.pei.pharmatest.dto.DrugResponse;
 import com.pei.pharmatest.exceptions.GlobalExceptionHandler;
 import com.pei.pharmatest.services.DrugService;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,8 +40,7 @@ class DrugControllerTest {
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.standaloneSetup(drugController)
-        .setControllerAdvice(new GlobalExceptionHandler())
-        .build();
+        .setControllerAdvice(new GlobalExceptionHandler()).build();
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
   }
@@ -63,12 +61,9 @@ class DrugControllerTest {
     when(drugService.getDrug(drugId)).thenReturn(Optional.of(drugResponse));
 
     // When & Then
-    mockMvc.perform(get("/api/v1/drugs/{id}", drugId)
-            .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isOk())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.id").value(drugId))
-        .andExpect(jsonPath("$.name").value("Aspirin"))
+    mockMvc.perform(get("/api/v1/drugs/{id}", drugId).contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.id").value(drugId)).andExpect(jsonPath("$.name").value("Aspirin"))
         .andExpect(jsonPath("$.manufacturer").value("Bayer"))
         .andExpect(jsonPath("$.batchNumber").value("BATCH123"))
         .andExpect(jsonPath("$.stock").value(100));
@@ -81,12 +76,10 @@ class DrugControllerTest {
     when(drugService.getDrug(drugId)).thenReturn(Optional.empty());
 
     // When & Then
-    mockMvc.perform(get("/api/v1/drugs/{id}", drugId)
-            .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error").value("Drug not found"))
-        .andExpect(jsonPath("$.message").value(
-            String.format("Drug with ID %d does not exist in the inventory", drugId)));
+    mockMvc.perform(get("/api/v1/drugs/{id}", drugId).contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Drug not found"))
+        .andExpect(jsonPath("$.message")
+            .value(String.format("Drug with ID %d does not exist in the inventory", drugId)));
   }
 
   @Test
@@ -95,10 +88,8 @@ class DrugControllerTest {
     Long invalidId = -1L;
 
     // When & Then
-    mockMvc.perform(get("/api/v1/drugs/{id}", invalidId)
-            .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error").value("Invalid input"))
+    mockMvc.perform(get("/api/v1/drugs/{id}", invalidId).contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Invalid input"))
         .andExpect(jsonPath("$.message").value("Drug ID must be a positive number"));
   }
 
@@ -124,13 +115,12 @@ class DrugControllerTest {
     when(drugService.addDrug(any(DrugRequest.class))).thenReturn(expectedResponse);
 
     // When & Then
-    mockMvc.perform(post("/api/v1/drugs")
-            .contentType(MediaType.APPLICATION_JSON)
+    mockMvc
+        .perform(post("/api/v1/drugs").contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.id").value(1))
-        .andExpect(jsonPath("$.name").value("Aspirin"))
+        .andExpect(jsonPath("$.id").value(1)).andExpect(jsonPath("$.name").value("Aspirin"))
         .andExpect(jsonPath("$.manufacturer").value("Bayer"))
         .andExpect(jsonPath("$.batchNumber").value("BATCH123"))
         .andExpect(jsonPath("$.stock").value(100));
@@ -145,11 +135,10 @@ class DrugControllerTest {
         .thenThrow(new IllegalArgumentException(errorMessage));
 
     // When & Then
-    mockMvc.perform(post("/api/v1/drugs")
-            .contentType(MediaType.APPLICATION_JSON)
+    mockMvc
+        .perform(post("/api/v1/drugs").contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error").value("Invalid input"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Invalid input"))
         .andExpect(jsonPath("$.message").value(errorMessage));
   }
 }
