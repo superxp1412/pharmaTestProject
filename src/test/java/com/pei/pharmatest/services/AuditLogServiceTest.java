@@ -13,7 +13,6 @@ import com.pei.pharmatest.repositories.AuditLogRepository;
 import com.pei.pharmatest.services.impl.AuditLogServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Page;
@@ -29,8 +28,8 @@ class AuditLogServiceTest {
   private AuditLogService auditLogService;
 
   @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
+  void setUp() throws Exception {
+    MockitoAnnotations.openMocks(this).close();
     auditLogService = new AuditLogServiceImpl(auditLogRepository);
   }
 
@@ -107,8 +106,8 @@ class AuditLogServiceTest {
     List<AuditLog> logs = List.of(log1);
     Page<AuditLog> page = new PageImpl<>(logs);
 
-    when(auditLogRepository.findAll(ArgumentMatchers.<Specification<AuditLog>>any(),
-        any(PageRequest.class))).thenReturn(page);
+    when(auditLogRepository.findAll(any(Specification.class), any(PageRequest.class)))
+        .thenReturn(page);
 
     // When
     Page<AuditLog> result =
