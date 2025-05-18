@@ -1,13 +1,14 @@
 package com.pei.pharmatest.services.impl;
 
-import com.pei.pharmatest.dto.DrugRequest;
-import com.pei.pharmatest.dto.DrugResponse;
-import com.pei.pharmatest.entities.Drug;
-import com.pei.pharmatest.repositories.DrugRepository;
-import com.pei.pharmatest.services.DrugService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import com.pei.pharmatest.dto.DrugRequest;
+import com.pei.pharmatest.dto.DrugResponse;
+import com.pei.pharmatest.entities.Drug;
+import com.pei.pharmatest.exceptions.ValidationException;
+import com.pei.pharmatest.repositories.DrugRepository;
+import com.pei.pharmatest.services.DrugService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -31,8 +32,7 @@ public class DrugServiceImpl implements DrugService {
    */
   @Override
   public Optional<DrugResponse> getDrug(Long id) {
-    return drugRepository.findById(id)
-        .map(this::convertToResponse);
+    return drugRepository.findById(id).map(this::convertToResponse);
   }
 
   /**
@@ -40,7 +40,7 @@ public class DrugServiceImpl implements DrugService {
    *
    * @param request The drug request containing the drug details
    * @return The created drug response
-   * @throws IllegalArgumentException if the request validation fails
+   * @throws ValidationException if any validation fails
    */
   @Override
   public DrugResponse addDrug(DrugRequest request) {
@@ -54,29 +54,29 @@ public class DrugServiceImpl implements DrugService {
    * Validates the drug request.
    *
    * @param request The drug request to validate
-   * @throws IllegalArgumentException if any validation fails
+   * @throws ValidationException if any validation fails
    */
   private void validateRequest(DrugRequest request) {
     if (request.getName() == null || request.getName().trim().isEmpty()) {
-      throw new IllegalArgumentException("Drug name is required");
+      throw new ValidationException("Drug name is required");
     }
     if (request.getManufacturer() == null || request.getManufacturer().trim().isEmpty()) {
-      throw new IllegalArgumentException("Manufacturer name is required");
+      throw new ValidationException("Manufacturer name is required");
     }
     if (request.getBatchNumber() == null || request.getBatchNumber().trim().isEmpty()) {
-      throw new IllegalArgumentException("Batch number is required");
+      throw new ValidationException("Batch number is required");
     }
     if (request.getExpiryDate() == null) {
-      throw new IllegalArgumentException("Expiry date is required");
+      throw new ValidationException("Expiry date is required");
     }
     if (request.getStock() == null) {
-      throw new IllegalArgumentException("Stock quantity is required");
+      throw new ValidationException("Stock quantity is required");
     }
     if (request.getStock() < 0) {
-      throw new IllegalArgumentException("Stock quantity cannot be negative");
+      throw new ValidationException("Stock quantity cannot be negative");
     }
     if (request.getExpiryDate().isBefore(LocalDate.now())) {
-      throw new IllegalArgumentException(
+      throw new ValidationException(
           "Cannot add expired drugs to inventory. The drug has already expired on "
               + request.getExpiryDate().toString());
     }

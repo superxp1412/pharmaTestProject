@@ -5,20 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.Set;
 import com.pei.pharmatest.dto.PrescriptionResponse;
 import com.pei.pharmatest.entities.Drug;
 import com.pei.pharmatest.entities.Patient;
 import com.pei.pharmatest.entities.Pharmacy;
 import com.pei.pharmatest.entities.Prescription;
 import com.pei.pharmatest.entities.PrescriptionItem;
+import com.pei.pharmatest.exceptions.BusinessException;
 import com.pei.pharmatest.repositories.DrugRepository;
 import com.pei.pharmatest.repositories.PatientRepository;
 import com.pei.pharmatest.repositories.PharmacyRepository;
 import com.pei.pharmatest.repositories.PrescriptionRepository;
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,12 +71,9 @@ class PharmacyServiceImplTest {
 
     prescription.setItems(Set.of(item1));
 
-    when(prescriptionRepository.findById(prescriptionId))
-        .thenReturn(Optional.of(prescription));
-    when(prescriptionRepository.save(any(Prescription.class)))
-        .thenReturn(prescription);
-    when(drugRepository.save(any(Drug.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
+    when(prescriptionRepository.findById(prescriptionId)).thenReturn(Optional.of(prescription));
+    when(prescriptionRepository.save(any(Prescription.class))).thenReturn(prescription);
+    when(drugRepository.save(any(Drug.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
     // When
     PrescriptionResponse response = pharmacyService.fulfillPrescription(prescriptionId);
@@ -108,12 +105,12 @@ class PharmacyServiceImplTest {
 
     prescription.setItems(Set.of(item1));
 
-    when(prescriptionRepository.findById(prescriptionId))
-        .thenReturn(Optional.of(prescription));
+    when(prescriptionRepository.findById(prescriptionId)).thenReturn(Optional.of(prescription));
 
     // When & Then
-    assertThrows(IllegalStateException.class,
+    BusinessException exception = assertThrows(BusinessException.class,
         () -> pharmacyService.fulfillPrescription(prescriptionId));
+    assertEquals("Drug " + drug1.getName() + " has expired", exception.getMessage());
   }
 
   @Test
@@ -127,6 +124,7 @@ class PharmacyServiceImplTest {
 
     Drug drug1 = new Drug();
     drug1.setId(1L);
+    drug1.setName("Test Drug");
     drug1.setStock(5);
     drug1.setExpiryDate(LocalDate.now().plusDays(30));
 
@@ -137,11 +135,28 @@ class PharmacyServiceImplTest {
 
     prescription.setItems(Set.of(item1));
 
-    when(prescriptionRepository.findById(prescriptionId))
-        .thenReturn(Optional.of(prescription));
+    when(prescriptionRepository.findById(prescriptionId)).thenReturn(Optional.of(prescription));
 
     // When & Then
-    assertThrows(IllegalStateException.class,
+    BusinessException exception = assertThrows(BusinessException.class,
         () -> pharmacyService.fulfillPrescription(prescriptionId));
+    assertEquals("Insufficient stock for drug: " + drug1.getName(), exception.getMessage());
+  }
+
+  @Test
+  void fulfillPrescription_InvalidStatus() {
+    // Given
+    Long prescriptionId = 1L;
+
+    Prescription prescription = new Prescription();
+    prescription.setId(prescriptionId);
+    prescription.setStatus(Prescription.PrescriptionStatus.FULFILLED);
+
+    when(prescriptionRepository.findById(prescriptionId)).thenReturn(Optional.of(prescription));
+
+    // When & Then
+    BusinessException exception = assertThrows(BusinessException.class,
+        () -> pharmacyService.fulfillPrescription(prescriptionId));
+    assertEquals("Prescription has already been fulfilled or cancelled", exception.getMessage());
   }
 }

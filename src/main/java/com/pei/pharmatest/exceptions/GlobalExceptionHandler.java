@@ -27,9 +27,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   /**
    * Handles ResourceNotFoundException by returning a 404 Not Found response.
-   *
-   * @param ex The ResourceNotFoundException that was thrown
-   * @return ResponseEntity containing the error details
    */
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
@@ -40,28 +37,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Handles IllegalArgumentException by returning a 400 Bad Request response.
-   *
-   * @param ex The IllegalArgumentException that was thrown
-   * @return ResponseEntity containing the error details
+   * Handles ValidationException by returning a 400 Bad Request response.
    */
-  @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-    logger.warn("Invalid input: {}", ex.getMessage());
-    ErrorResponse errorResponse = new ErrorResponse("Invalid input", ex.getMessage());
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
+    logger.warn("Validation error: {}", ex.getMessage());
+    ErrorResponse errorResponse = new ErrorResponse("Validation error", ex.getMessage());
     return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
   }
 
   /**
-   * Handles IllegalStateException by returning a 400 Bad Request response.
-   *
-   * @param ex The IllegalStateException that was thrown
-   * @return ResponseEntity containing the error details
+   * Handles BusinessException by returning a 400 Bad Request response.
    */
-  @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
-    logger.warn("Invalid state: {}", ex.getMessage());
-    ErrorResponse errorResponse = new ErrorResponse("Invalid state", ex.getMessage());
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
+    logger.warn("Business rule violation: {}", ex.getMessage());
+    ErrorResponse errorResponse = new ErrorResponse("Business rule violation", ex.getMessage());
     return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
   }
 
@@ -72,7 +63,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @Override
   protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
       HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-
     Map<String, String> fieldErrors = new HashMap<>();
     ex.getBindingResult().getAllErrors().forEach(error -> {
       String fieldName = ((FieldError) error).getField();
@@ -87,9 +77,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   /**
    * Handles all other exceptions by returning a 500 Internal Server Error response.
-   *
-   * @param ex The Exception that was thrown
-   * @return ResponseEntity containing the error details
    */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {

@@ -1,6 +1,7 @@
 package com.pei.pharmatest.services.impl;
 
 import com.pei.pharmatest.entities.AuditLog;
+import com.pei.pharmatest.exceptions.ValidationException;
 import com.pei.pharmatest.repositories.AuditLogRepository;
 import com.pei.pharmatest.services.AuditLogService;
 import org.springframework.data.domain.Page;
@@ -18,7 +19,11 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public Page<AuditLog> getAuditLogs(Long patientId, Long pharmacyId, String status, Pageable pageable) {
+    public Page<AuditLog> getAuditLogs(Long patientId, Long pharmacyId, String status,
+            Pageable pageable) {
+        validatePageable(pageable);
+        validateStatus(status);
+
         Specification<AuditLog> spec = Specification.where(null);
 
         if (patientId != null) {
@@ -34,5 +39,26 @@ public class AuditLogServiceImpl implements AuditLogService {
         }
 
         return auditLogRepository.findAll(spec, pageable);
+    }
+
+    private void validatePageable(Pageable pageable) {
+        if (pageable == null) {
+            throw new ValidationException("Pageable parameters cannot be null");
+        }
+        if (pageable.getPageSize() <= 0) {
+            throw new ValidationException("Page size must be greater than zero");
+        }
+        if (pageable.getPageNumber() < 0) {
+            throw new ValidationException("Page number cannot be negative");
+        }
+    }
+
+    private void validateStatus(String status) {
+        if (status != null && !status.isEmpty()) {
+            if (!status.matches("^[A-Z_]+$")) {
+                throw new ValidationException(
+                        "Invalid status format. Status should be uppercase with underscores");
+            }
+        }
     }
 }

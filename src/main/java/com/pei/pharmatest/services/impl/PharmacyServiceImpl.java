@@ -1,5 +1,13 @@
 package com.pei.pharmatest.services.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import com.pei.pharmatest.dto.ContractedDrugResponse;
 import com.pei.pharmatest.dto.PharmacyResponse;
 import com.pei.pharmatest.dto.PrescriptionDrugRequest;
@@ -12,20 +20,14 @@ import com.pei.pharmatest.entities.Pharmacy;
 import com.pei.pharmatest.entities.PharmacyDrug;
 import com.pei.pharmatest.entities.Prescription;
 import com.pei.pharmatest.entities.PrescriptionItem;
+import com.pei.pharmatest.exceptions.BusinessException;
 import com.pei.pharmatest.exceptions.ResourceNotFoundException;
+import com.pei.pharmatest.exceptions.ValidationException;
 import com.pei.pharmatest.repositories.DrugRepository;
 import com.pei.pharmatest.repositories.PatientRepository;
 import com.pei.pharmatest.repositories.PharmacyRepository;
 import com.pei.pharmatest.repositories.PrescriptionRepository;
 import com.pei.pharmatest.services.PharmacyService;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,14 +47,13 @@ public class PharmacyServiceImpl implements PharmacyService {
   /**
    * Constructs a new PharmacyServiceImpl with the required dependencies.
    *
-   * @param pharmacyRepository     The repository for pharmacy operations
-   * @param patientRepository      The repository for patient operations
+   * @param pharmacyRepository The repository for pharmacy operations
+   * @param patientRepository The repository for patient operations
    * @param prescriptionRepository The repository for prescription operations
-   * @param drugRepository         The repository for drug operations
+   * @param drugRepository The repository for drug operations
    */
   public PharmacyServiceImpl(PharmacyRepository pharmacyRepository,
-      PatientRepository patientRepository,
-      PrescriptionRepository prescriptionRepository,
+      PatientRepository patientRepository, PrescriptionRepository prescriptionRepository,
       DrugRepository drugRepository) {
     this.pharmacyRepository = pharmacyRepository;
     this.patientRepository = patientRepository;
@@ -67,8 +68,7 @@ public class PharmacyServiceImpl implements PharmacyService {
    */
   @Override
   public List<PharmacyResponse> getAllPharmacies() {
-    return pharmacyRepository.findAll().stream()
-        .map(this::mapToPharmacyResponse)
+    return pharmacyRepository.findAll().stream().map(this::mapToPharmacyResponse)
         .collect(Collectors.toList());
   }
 
@@ -95,8 +95,7 @@ public class PharmacyServiceImpl implements PharmacyService {
    */
   private java.util.Set<ContractedDrugResponse> mapToContractedDrugs(
       java.util.Set<PharmacyDrug> pharmacyDrugs) {
-    return pharmacyDrugs.stream()
-        .map(this::mapToContractedDrugResponse)
+    return pharmacyDrugs.stream().map(this::mapToContractedDrugResponse)
         .collect(Collectors.toSet());
   }
 
@@ -123,19 +122,19 @@ public class PharmacyServiceImpl implements PharmacyService {
    * Creates a new prescription for a patient at a specific pharmacy.
    *
    * @param pharmacyId The ID of the pharmacy
-   * @param request    The prescription request containing patient and drug information
+   * @param request The prescription request containing patient and drug information
    * @return A PrescriptionResponse containing the created prescription details
    * @throws ResourceNotFoundException If the pharmacy or patient is not found
-   * @throws IllegalArgumentException  If the requested drugs are not contracted or quantities are
-   *                                   invalid
+   * @throws ValidationException If the prescription request is invalid
    */
   @Override
   @Transactional
   public PrescriptionResponse createPrescription(Long pharmacyId, PrescriptionRequest request) {
+    validatePrescriptionRequest(request);
+
     // Validate pharmacy exists
-    Pharmacy pharmacy = pharmacyRepository.findById(pharmacyId)
-        .orElseThrow(
-            () -> new ResourceNotFoundException("Pharmacy not found with id: " + pharmacyId));
+    Pharmacy pharmacy = pharmacyRepository.findById(pharmacyId).orElseThrow(
+        () -> new ResourceNotFoundException("Pharmacy not found with id: " + pharmacyId));
 
     // Validate patient exists
     Patient patient = patientRepository.findById(request.getPatientId())
@@ -149,23 +148,21 @@ public class PharmacyServiceImpl implements PharmacyService {
     // Validate all drugs are contracted with the pharmacy
     for (PrescriptionDrugRequest drugRequest : request.getDrugs()) {
       if (!pharmacyDrugMap.containsKey(drugRequest.getDrugId())) {
-        throw new IllegalArgumentException("Drug with ID "
-            + drugRequest.getDrugId()
-            + " is not contracted with this pharmacy");
+        throw new BusinessException(
+            "Drug with ID " + drugRequest.getDrugId() + " is not contracted with this pharmacy");
       }
 
       PharmacyDrug pharmacyDrug = pharmacyDrugMap.get(drugRequest.getDrugId());
 
       // Validate drug is within allocation limits
       if (drugRequest.getQuantity() > pharmacyDrug.getAllocatedAmount()) {
-        throw new IllegalArgumentException(
-            "Requested quantity exceeds pharmacy's allocation for drug: "
-                + pharmacyDrug.getDrug().getName());
+        throw new BusinessException("Requested quantity exceeds pharmacy's allocation for drug: "
+            + pharmacyDrug.getDrug().getName());
       }
 
       // Validate drug is available in stock
       if (drugRequest.getQuantity() > pharmacyDrug.getDrug().getStock()) {
-        throw new IllegalArgumentException("Requested quantity exceeds available stock for drug: "
+        throw new BusinessException("Requested quantity exceeds available stock for drug: "
             + pharmacyDrug.getDrug().getName());
       }
     }
@@ -178,16 +175,14 @@ public class PharmacyServiceImpl implements PharmacyService {
     prescription.setStatus(Prescription.PrescriptionStatus.CREATED);
 
     // Create prescription items
-    Set<PrescriptionItem> items = request.getDrugs().stream()
-        .map(drugRequest -> {
-          PrescriptionItem item = new PrescriptionItem();
-          item.setPrescription(prescription);
-          item.setDrug(pharmacyDrugMap.get(drugRequest.getDrugId()).getDrug());
-          item.setQuantity(drugRequest.getQuantity());
-          item.setDosage(drugRequest.getDosage());
-          return item;
-        })
-        .collect(Collectors.toSet());
+    Set<PrescriptionItem> items = request.getDrugs().stream().map(drugRequest -> {
+      PrescriptionItem item = new PrescriptionItem();
+      item.setPrescription(prescription);
+      item.setDrug(pharmacyDrugMap.get(drugRequest.getDrugId()).getDrug());
+      item.setQuantity(drugRequest.getQuantity());
+      item.setDosage(drugRequest.getDosage());
+      return item;
+    }).collect(Collectors.toSet());
 
     prescription.setItems(items);
 
@@ -196,6 +191,29 @@ public class PharmacyServiceImpl implements PharmacyService {
 
     // Map to response
     return mapToPrescriptionResponse(savedPrescription);
+  }
+
+  private void validatePrescriptionRequest(PrescriptionRequest request) {
+    if (request == null) {
+      throw new ValidationException("Prescription request cannot be null");
+    }
+    if (request.getPatientId() == null) {
+      throw new ValidationException("Patient ID is required");
+    }
+    if (request.getDrugs() == null || request.getDrugs().isEmpty()) {
+      throw new ValidationException("At least one drug must be specified in the prescription");
+    }
+    for (PrescriptionDrugRequest drugRequest : request.getDrugs()) {
+      if (drugRequest.getDrugId() == null) {
+        throw new ValidationException("Drug ID is required for each prescription item");
+      }
+      if (drugRequest.getQuantity() == null || drugRequest.getQuantity() <= 0) {
+        throw new ValidationException("Quantity must be greater than zero for each drug");
+      }
+      if (drugRequest.getDosage() == null || drugRequest.getDosage().trim().isEmpty()) {
+        throw new ValidationException("Dosage instructions are required for each drug");
+      }
+    }
   }
 
   /**
@@ -235,14 +253,13 @@ public class PharmacyServiceImpl implements PharmacyService {
    * @param prescriptionId The ID of the prescription to fulfill
    * @return A PrescriptionResponse containing the updated prescription details
    * @throws ResourceNotFoundException If the prescription is not found
-   * @throws IllegalStateException     If the prescription cannot be fulfilled
+   * @throws BusinessException If the prescription cannot be fulfilled
    */
   @Transactional
   public PrescriptionResponse fulfillPrescription(Long prescriptionId) {
     try {
       return doFulfillPrescription(prescriptionId);
-    } catch (IllegalStateException e) {
-      // Re-throw the exception to be caught by the aspect
+    } catch (BusinessException e) {
       throw e;
     }
   }
@@ -253,18 +270,17 @@ public class PharmacyServiceImpl implements PharmacyService {
    * @param prescriptionId The ID of the prescription to fulfill
    * @return A PrescriptionResponse containing the updated prescription details
    * @throws ResourceNotFoundException If the prescription is not found
-   * @throws IllegalStateException     If the prescription cannot be fulfilled
+   * @throws BusinessException If the prescription cannot be fulfilled
    */
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   protected PrescriptionResponse doFulfillPrescription(Long prescriptionId) {
     // Find prescription with pessimistic lock to prevent concurrent modifications
-    Prescription prescription = prescriptionRepository.findById(prescriptionId)
-        .orElseThrow(() -> new ResourceNotFoundException(
-            "Prescription not found with id: " + prescriptionId));
+    Prescription prescription = prescriptionRepository.findById(prescriptionId).orElseThrow(
+        () -> new ResourceNotFoundException("Prescription not found with id: " + prescriptionId));
 
     // Validate prescription status
     if (prescription.getStatus() != Prescription.PrescriptionStatus.CREATED) {
-      throw new IllegalStateException("Prescription has already been fulfilled or cancelled");
+      throw new BusinessException("Prescription has already been fulfilled or cancelled");
     }
 
     // Check each drug's expiry and stock
@@ -273,12 +289,12 @@ public class PharmacyServiceImpl implements PharmacyService {
 
       // Check expiry
       if (drug.getExpiryDate().isBefore(LocalDate.now())) {
-        throw new IllegalStateException("Drug " + drug.getName() + " has expired");
+        throw new BusinessException("Drug " + drug.getName() + " has expired");
       }
 
       // Check stock
       if (drug.getStock() < item.getQuantity()) {
-        throw new IllegalStateException("Insufficient stock for drug: " + drug.getName());
+        throw new BusinessException("Insufficient stock for drug: " + drug.getName());
       }
 
       // Reduce stock

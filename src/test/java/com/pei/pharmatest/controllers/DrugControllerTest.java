@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.pei.pharmatest.exceptions.ValidationException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -77,7 +79,8 @@ class DrugControllerTest {
 
     // When & Then
     mockMvc.perform(get("/api/v1/drugs/{id}", drugId).contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Drug not found"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.error").value("Resource not found"))
         .andExpect(jsonPath("$.message")
             .value(String.format("Drug with ID %d does not exist in the inventory", drugId)));
   }
@@ -89,7 +92,7 @@ class DrugControllerTest {
 
     // When & Then
     mockMvc.perform(get("/api/v1/drugs/{id}", invalidId).contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Invalid input"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Validation error"))
         .andExpect(jsonPath("$.message").value("Drug ID must be a positive number"));
   }
 
@@ -132,13 +135,13 @@ class DrugControllerTest {
     DrugRequest request = new DrugRequest();
     String errorMessage = "Drug name is required";
     when(drugService.addDrug(any(DrugRequest.class)))
-        .thenThrow(new IllegalArgumentException(errorMessage));
+        .thenThrow(new ValidationException(errorMessage));
 
     // When & Then
     mockMvc
         .perform(post("/api/v1/drugs").contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Invalid input"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("Validation error"))
         .andExpect(jsonPath("$.message").value(errorMessage));
   }
 }

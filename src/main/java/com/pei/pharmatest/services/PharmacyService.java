@@ -1,10 +1,12 @@
 package com.pei.pharmatest.services;
 
+import java.util.List;
 import com.pei.pharmatest.dto.PharmacyResponse;
 import com.pei.pharmatest.dto.PrescriptionRequest;
 import com.pei.pharmatest.dto.PrescriptionResponse;
+import com.pei.pharmatest.exceptions.BusinessException;
 import com.pei.pharmatest.exceptions.ResourceNotFoundException;
-import java.util.List;
+import com.pei.pharmatest.exceptions.ValidationException;
 
 /**
  * Service interface for managing pharmacies and prescriptions in the system. Provides operations
@@ -25,10 +27,11 @@ public interface PharmacyService {
    * allocation limits 4. All drugs are available in stock
    *
    * @param pharmacyId The ID of the pharmacy
-   * @param request    The prescription request containing drug details
+   * @param request The prescription request containing drug details
    * @return The created prescription details
-   * @throws IllegalArgumentException  if validation fails
-   * @throws ResourceNotFoundException if pharmacy not found
+   * @throws ValidationException if input validation fails
+   * @throws BusinessException if business rules are violated
+   * @throws ResourceNotFoundException if pharmacy or patient not found
    */
   PrescriptionResponse createPrescription(Long pharmacyId, PrescriptionRequest request);
 
@@ -39,7 +42,7 @@ public interface PharmacyService {
    * @param prescriptionId The ID of the prescription to fulfill
    * @return The updated prescription details
    * @throws ResourceNotFoundException if prescription not found
-   * @throws IllegalStateException     if prescription cannot be fulfilled
+   * @throws BusinessException if prescription cannot be fulfilled
    */
   PrescriptionResponse fulfillPrescription(Long prescriptionId);
 }
