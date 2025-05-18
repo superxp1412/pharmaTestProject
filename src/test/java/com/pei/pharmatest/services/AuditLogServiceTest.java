@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+import org.mockito.ArgumentMatchers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +42,7 @@ class AuditLogServiceTest {
     List<AuditLog> logs = Arrays.asList(log1, log2);
     Page<AuditLog> page = new PageImpl<>(logs);
 
-    when(auditLogRepository.findAll(any(Specification.class), any(PageRequest.class)))
+    when(auditLogRepository.findAll(ArgumentMatchers.<Specification<AuditLog>>any(), any(PageRequest.class)))
         .thenReturn(page);
 
     // When
@@ -62,7 +63,7 @@ class AuditLogServiceTest {
     List<AuditLog> logs = List.of(log1);
     Page<AuditLog> page = new PageImpl<>(logs);
 
-    when(auditLogRepository.findAll(any(Specification.class), any(PageRequest.class)))
+    when(auditLogRepository.findAll(ArgumentMatchers.<Specification<AuditLog>>any(), any(PageRequest.class)))
         .thenReturn(page);
 
     // When
@@ -83,7 +84,7 @@ class AuditLogServiceTest {
     List<AuditLog> logs = List.of(log1);
     Page<AuditLog> page = new PageImpl<>(logs);
 
-    when(auditLogRepository.findAll(any(Specification.class), any(PageRequest.class)))
+    when(auditLogRepository.findAll(ArgumentMatchers.<Specification<AuditLog>>any(), any(PageRequest.class)))
         .thenReturn(page);
 
     // When

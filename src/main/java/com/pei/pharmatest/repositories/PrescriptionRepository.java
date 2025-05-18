@@ -7,10 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.NonNull;
 
 public interface PrescriptionRepository extends JpaRepository<Prescription, Long> {
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT p FROM Prescription p LEFT JOIN FETCH p.items WHERE p.id = :id")
+  @NonNull
   Optional<Prescription> findById(@Param("id") Long id);
 }
